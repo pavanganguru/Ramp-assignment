@@ -14,6 +14,13 @@ export function App() {
   const { data: transactionsByEmployee, ...transactionsByEmployeeUtils } = useTransactionsByEmployee()
   const [isLoading, setIsLoading] = useState(false)
 
+  const isNextPageNull = () => {
+    return paginatedTransactions?.nextPage == null
+  }
+  const isTransactionByEmployeeLengthZero = () => {
+    return transactionsByEmployee?.length === 0
+  }
+
   const transactions = useMemo(
     () => paginatedTransactions?.data ?? transactionsByEmployee ?? null,
     [paginatedTransactions, transactionsByEmployee]
@@ -24,9 +31,8 @@ export function App() {
     transactionsByEmployeeUtils.invalidateData()
 
     await employeeUtils.fetchAll()
-    await paginatedTransactionsUtils.fetchAll()
-
     setIsLoading(false)
+    await paginatedTransactionsUtils.fetchAll()
   }, [employeeUtils, paginatedTransactionsUtils, transactionsByEmployeeUtils])
 
   const loadTransactionsByEmployee = useCallback(
@@ -63,9 +69,9 @@ export function App() {
           onChange={async (newValue) => {
             if (newValue === null) {
               return
-            }
-
-            await loadTransactionsByEmployee(newValue.id)
+            } else if (newValue.id === "") {
+              await loadAllTransactions()
+            } else await loadTransactionsByEmployee(newValue.id)
           }}
         />
 
@@ -77,7 +83,11 @@ export function App() {
           {transactions !== null && (
             <button
               className="RampButton"
-              disabled={paginatedTransactionsUtils.loading}
+              disabled={
+                paginatedTransactionsUtils.loading ||
+                isNextPageNull() ||
+                isTransactionByEmployeeLengthZero()
+              }
               onClick={async () => {
                 await loadAllTransactions()
               }}
